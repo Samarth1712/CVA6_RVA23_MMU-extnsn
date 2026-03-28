@@ -1,6 +1,7 @@
 The following analysis is derived entirely from grep, sed, and directory inspection of the CVA6
 repository. Every claim maps to a specific file and line number. 
 
+## Summary 
 | Extension | RVA23 | Status | Key evidence |
 |-----------|-------|--------|--------------|
 | Svnapot | Mandatory | Complete | 40+ hits across all MMU files. Gated on CVA6Cfg.SvnapotEn. |
