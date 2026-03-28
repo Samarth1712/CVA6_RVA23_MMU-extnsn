@@ -354,13 +354,3 @@ grep -n "mmu\|tlb\|sfence\|cacheable" ../corev_apu/openpiton/ariane_verilog_wrap
 
 ---
 
-## Summary table
-
-| Extension | Status | Evidence |
-|-----------|--------|---------|
-| Svnapot | Complete | 40+ hits, all logic present, gated on SvnapotEn |
-| Svpbmt | Missing | Zero MMU hits; pbmte stub at riscv_pkg.sv:133 declared but unused |
-| Svinval | Missing | Zero repo hits; sinval.vma not decoded anywhere |
-| Svadu | Partial (Svade) | PTW faults on A/D unset (lines 487–509); no write-back; comment at line 289 |
-| Sv48 | Unverified | Parametric design but PtLevels hardcoded=3 at build_config_pkg.sv:29 |
-| Sv57 | Out of scope | Not RVA23 mandatory |
