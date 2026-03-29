@@ -11,4 +11,4 @@ GSoC 2026 proposal: Svpbmt + Svinval + Sv48 verification.
 [Draft PR](Svpbmt/pr.md)
 
 ## Proposal
-[link to PDF]
+[link to PDF](https://drive.google.com/drive/folders/1XgELoI9SGRExweEIn00rmxqRWq0MtODN?usp=sharing)
