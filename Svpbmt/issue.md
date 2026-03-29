@@ -1,30 +1,19 @@
 ## rtl: Svpbmt support missing — pbmte unwired in menvcfg, MT bits absent from PTW/TLB/cache path
 ### Summary
 
-Svpbmt (page-based memory types) is mandatory in the RVA23 profile but is completely 
-absent from CVA6. This issue tracks the full implementation. A source-level audit of 
-the codebase identified the exact gaps listed below.
+Svpbmt (page-based memory types) is mandatory in the RVA23 profile but Svpbmt support appears to be currently unimplemented in CVA6. This issue tracks the full implementation. A source-level audit of the codebase identified the exact gaps listed below.
 
 ### Current state
 
-- `riscv_pkg.sv:133` — `pbmte` is declared in `envcfg_rv_t` with comment 
-  *"not implemented — requires Svpbmt extension"*
-- `csr_regfile.sv:1695` — `CSR_MENVCFG` write block exists but has **no `pbmte` case**; 
-  writes to bit 62 are silently dropped
-- `cva6_mmu/cva6_ptw.sv:430` — the reserved-bit fault check 
-  `(|pte.reserved && CVA6Cfg.XLEN == 64)` treats MT bits (PTE[63:62]) as illegal, 
-  causing a page fault on any Svpbmt-typed page
-- `riscv_pkg.sv:305–318` — `pte_t.reserved[9:0]` subsumes the MT field; 
-  bits 63:62 need to be split out as `logic [1:0] mt`
-- `cva6_mmu/cva6_mmu.sv:124` — `tlb_update_cva6_t` has no `pbmt` field; 
-  MT bits cannot propagate from PTW through TLB to LSU
-- `load_store_unit.sv:291` — MMU output carries only `lsu_paddr_o`; 
-  no `lsu_pbmt_o[1:0]` signal exists to carry MT to cache backends
-- `cache_subsystem/wt_dcache.sv`, `std_nbdcache.sv`, `cva6_hpdcache_wrapper.sv` — 
-  none enforce MT=01 (non-cacheable) or MT=10 (I/O) bypass behaviour
+- `riscv_pkg.sv:133` — `pbmte` is declared in `envcfg_rv_t` with comment *"not implemented — requires Svpbmt extension"*
+- `csr_regfile.sv:1695` — `CSR_MENVCFG` write block exists but has **no `pbmte` case**; writes to bit 62 are silently dropped
+- `cva6_mmu/cva6_ptw.sv:430` — the reserved-bit fault check `(|pte.reserved && CVA6Cfg.XLEN == 64)` treats MT bits (PTE[63:62]) as illegal, causing a page fault on any Svpbmt-typed page
+- `riscv_pkg.sv:305–318` — `pte_t.reserved[9:0]` subsumes the MT field; bits 63:62 need to be split out as `logic [1:0] mt`
+- `cva6_mmu/cva6_mmu.sv:124` — `tlb_update_cva6_t` has no `pbmt` field; MT bits cannot propagate from PTW through TLB to LSU
+- `load_store_unit.sv:291` — MMU output carries only `lsu_paddr_o`; no `lsu_pbmt_o[1:0]` signal exists to carry MT to cache backends
+- `cache_subsystem/wt_dcache.sv`, `std_nbdcache.sv`, `cva6_hpdcache_wrapper.sv` — none enforce MT=01 (non-cacheable) or MT=10 (I/O) bypass behaviour
 
-No `SvpbmtEn` config flag exists anywhere in the repo 
-(`grep -rn "SvpbmtEn" .` returns nothing).
+No `SvpbmtEn` config flag exists anywhere in the repo (`grep -rn "SvpbmtEn" .` returns nothing).
 
 ### Required changes (file : line)
 
@@ -46,14 +35,9 @@ No `SvpbmtEn` config flag exists anywhere in the repo
 
 ### Implementation notes
 
-The Zicbom implementation already proves the CSR wiring pattern. Fields `cbcfe`/`cbie` 
-are live in `csr_regfile.sv` (registers at lines 321–322, write at line 1700, read at 
-line 636). `pbmte` at bit 62 follows the identical pattern.
+The Zicbom implementation already proves the CSR wiring pattern. Fields `cbcfe`/`cbie` are live in `csr_regfile.sv` (registers at lines 321–322, write at line 1700, read at line 636). `pbmte` at bit 62 follows the identical pattern.
 
-`tlb_update_cva6_t` is a `localparam type` defined only at `cva6_mmu.sv:124` and passed 
-as a `parameter type` to `cva6_ptw`, `cva6_tlb`, and `cva6_shared_tlb`. Adding 
-`logic [1:0] pbmt` there is a single change that propagates to all three submodules 
-automatically — the same mechanism used for `is_napot_64k` (Svnapot).
+`tlb_update_cva6_t` is a `localparam type` defined only at `cva6_mmu.sv:124` and passed as a `parameter type` to `cva6_ptw`, `cva6_tlb`, and `cva6_shared_tlb`. Adding `logic [1:0] pbmt` there is a single change that propagates to all three submodules automatically — the same mechanism used for `is_napot_64k` (Svnapot).
 
 All existing configs will default `SvpbmtEn=0` — no functional change to current behaviour.
 
