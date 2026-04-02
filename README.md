@@ -7,8 +7,11 @@ GSoC 2026 proposal: Svpbmt + Svinval + Sv48 verification.
 [Gap Analysis](audit/gap_analysis.md)
 
 ## Related CVA6 issue / PR
-[Issue](Svpbmt/issue.md)
-[Draft PR](Svpbmt/pr.md)
+###Svpbmt
+[#Issue3253](Svpbmt/issue.md#issue3253)
+
+
+[Draft PR](Svpbmt/PR.md)
 
 ## Proposal
 [link to PDF](https://drive.google.com/drive/folders/1XgELoI9SGRExweEIn00rmxqRWq0MtODN?usp=sharing)
