@@ -4,10 +4,11 @@ Source-level audit of CVA6 for RVA23 Sv* MMU extension compliance.
 GSoC 2026 proposal: Svpbmt + Svinval + Sv48 verification.
 
 ## Audit findings
+[Grep Outputs](audit/grep_outputs.md)
 [Gap Analysis](audit/gap_analysis.md)
 
 ## Related CVA6 issue / PR
-###Svpbmt
+### Svpbmt
 [#Issue3253](Svpbmt/issue.md#issue3253)
 
 
