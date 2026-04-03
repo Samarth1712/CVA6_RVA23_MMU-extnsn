@@ -1,0 +1,49 @@
+## [#Issue3253](https://github.com/openhwgroup/cva6/issues/3253) ## rtl: Svpbmt support missing — pbmte unwired in menvcfg, MT bits absent from PTW/TLB/cache path
+## Summary
+
+Svpbmt (page-based memory types) is mandatory in the RVA23 profile but Svpbmt support appears to be currently unimplemented in CVA6. This issue tracks the full implementation. A source-level audit identified the exact gaps below.
+
+## Current state
+
+- `cva6_mmu/cva6_mmu.sv` — `pte_cva6_t.reserved[8:0]` subsumes the MT field (PTE bits [62:61]); any Svpbmt-typed page triggers a spurious page fault at `cva6_ptw.sv:430`
+- `cva6_mmu/cva6_mmu.sv:124` — `tlb_update_cva6_t` has no `pbmt` field; MT bits cannot propagate from PTW through TLB to LSU
+- `riscv_pkg.sv:133` — `pbmte` declared in `envcfg_rv_t` with comment "not implemented — requires Svpbmt extension"
+- `csr_regfile.sv:1695` — `CSR_MENVCFG` write block exists but has no `pbmte` case; writes to bit 62 are silently dropped
+- `load_store_unit.sv:291` — MMU output carries only `lsu_paddr_o`; no `lsu_pbmt_o[1:0]` signal exists to carry MT to cache backends
+- `cache_subsystem/wt_dcache.sv`, `std_nbdcache.sv`, `cva6_hpdcache_wrapper.sv` — none enforce MT=01 (non-cacheable)
+  or MT=10 (I/O) bypass behaviour
+- No `SvpbmtEn` config flag exists anywhere in the repo
+
+## Required changes (file : line)
+
+| File | Location | Change |
+|------|----------|--------|
+| `include/config_pkg.sv` | ~265, ~351 | Add `bit SvpbmtEn` after `SvnapotEn` in both user and built config structs |
+| `include/build_config_pkg.sv` | after `cfg.SvnapotEn` | Add `cfg.SvpbmtEn = CVA6Cfg.SvpbmtEn` propagation |
+| `cva6_mmu/cva6_mmu.sv` | ~110 | Split `pte_cva6_t.reserved[8:0]` → `pbmt[1:0]` + `reserved[6:0]` |
+| `cva6_mmu/cva6_mmu.sv` | ~126 | Add `logic [1:0] pbmt` to `tlb_update_cva6_t` after `is_napot_64k` |
+| `cva6_mmu/cva6_ptw.sv` | ~429 | Update comment to document `pte.reserved` now checks bits [60:54] only |
+| `cva6_mmu/cva6_ptw.sv` | ~206 | Assign `shared_tlb_update_o.pbmt` from `pte.pbmt` |
+| `cva6_mmu/cva6_tlb.sv` | ~395 | Store `pbmt` in TLB tag; output on hit |
+| `cva6_mmu/cva6_shared_tlb.sv` | 297, 308 | Propagate `pbmt` in `itlb_update_o` / `dtlb_update_o` |
+| `cva6_mmu/cva6_mmu.sv` | output ports | Add `lsu_pbmt_o[1:0]` alongside `lsu_paddr_o` |
+| `csr_regfile.sv` | 132, 1695 | `mpbmte_d/q`, `spbmte_d/q` registers; MENVCFG/SENVCFG write/read cases gated on `SvpbmtEn` |
+| `load_store_unit.sv` | ~291 | Wire `lsu_pbmt_o` into `dcache_req_ports_o` |
+| `cache_subsystem/wt_dcache.sv` | cache ctrl | MT=01 NC bypass; MT=10 IO bypass |
+| `cache_subsystem/std_nbdcache.sv` | cache ctrl | Same MT enforcement |
+| `cache_subsystem/cva6_hpdcache_wrapper.sv` | cache ctrl | Same MT enforcement (validate independently — HPDcache has MSHR) |
+
+
+## Implementation notes
+
+The Zicbom implementation proves the CSR wiring pattern. Fields `cbcfe`/`cbie` are live in `csr_regfile.sv` (registers at lines 321–322, write at ~1700, read at ~636). `pbmte` at bit 62 follows the identical pattern.
+
+`tlb_update_cva6_t` is a `localparam type` defined only at `cva6_mmu.sv:124` and passed as `parameter type` to `cva6_ptw`, `cva6_tlb`, and `cva6_shared_tlb`. Adding `logic [1:0] pbmt` there propagates automatically to all three submodules — the same mechanism used for `is_napot_64k` (Svnapot).
+
+All existing configs will default `SvpbmtEn=0` — no functional change to current behaviour.
+
+## Related
+
+- RISC-V Privileged Spec v1.12 — Svpbmt extension
+- RVA23 profile — Svpbmt mandatory
+- Svnapot (`SvnapotEn`) — direct structural template
