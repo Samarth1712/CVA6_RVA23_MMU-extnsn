@@ -1,4 +1,4 @@
-## [#Issue3253](https://github.com/openhwgroup/cva6/issues/3253) rtl: Svpbmt support missing — pbmte unwired in menvcfg, MT bits absent from PTW/TLB/cache path
+## [Issue#3253](https://github.com/openhwgroup/cva6/issues/3253) rtl: Svpbmt support missing — pbmte unwired in menvcfg, MT bits absent from PTW/TLB/cache path
 ## Summary
 
 Svpbmt (page-based memory types) is mandatory in the RVA23 profile but Svpbmt support appears to be currently unimplemented in CVA6. This issue tracks the full implementation. A source-level audit identified the exact gaps below.
